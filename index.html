@@ -13,23 +13,43 @@
     <header class="topbar">
       <div>
         <p class="eyebrow">MIN HJÄLP</p>
-        <h1>Hej 👋</h1>
-        <p class="muted">En sak i taget.</p>
+        <h1 id="greeting">Hej 👋</h1>
+        <p class="muted" id="calmLine">En sak i taget.</p>
       </div>
       <button id="settingsBtn" class="icon-btn" aria-label="Inställningar">⚙️</button>
     </header>
 
     <section class="now-card" aria-labelledby="nowTitle">
-      <div class="section-label">NU</div>
-      <h2 id="nowTitle">Vad är nästa sak?</h2>
+      <div class="now-top">
+        <div>
+          <div class="section-label">NU</div>
+          <h2 id="nowTitle">Vad är nästa sak?</h2>
+        </div>
+        <button id="focusBtn" class="focus-toggle" type="button">Fokus</button>
+      </div>
+
       <p id="nowTaskText" class="now-task">Inget valt ännu.</p>
+      <p id="nowStepText" class="now-step hidden"></p>
+
+      <div id="nowProgressWrap" class="progress-wrap hidden">
+        <div class="progress-track"><div id="nowProgressBar" class="progress-bar"></div></div>
+        <span id="nowProgressLabel"></span>
+      </div>
+
       <div class="now-actions">
         <button id="doneNowBtn" class="primary" disabled>✓ Klar</button>
+        <button id="nextStepBtn" class="primary hidden" disabled>Nästa steg →</button>
         <button id="skipNowBtn" class="secondary" disabled>Senare</button>
       </div>
     </section>
 
-    <button id="quickAddBtn" class="quick-add">＋ Kom ihåg något</button>
+    <button id="quickAddBtn" class="quick-add">＋ Få ur huvudet</button>
+
+    <section class="capture-strip">
+      <button class="capture-choice" data-capture="now">⚡ Nu</button>
+      <button class="capture-choice" data-capture="today">☀️ Idag</button>
+      <button class="capture-choice" data-capture="later">📥 Senare</button>
+    </section>
 
     <nav class="tabs" aria-label="Huvudmeny">
       <button class="tab active" data-tab="today">Idag</button>
@@ -40,8 +60,11 @@
 
     <section id="today" class="panel active">
       <div class="panel-head">
-        <h2>Idag</h2>
-        <span id="todayDate" class="muted"></span>
+        <div>
+          <h2>Idag</h2>
+          <span id="todayDate" class="muted"></span>
+        </div>
+        <button id="sortTodayBtn" class="small-btn">Enklast först</button>
       </div>
       <div id="todayList" class="list"></div>
       <div id="todayEmpty" class="empty">Inget mer idag. Bra jobbat.</div>
@@ -49,16 +72,27 @@
 
     <section id="inbox" class="panel">
       <div class="panel-head">
-        <h2>Kom ihåg</h2>
+        <div>
+          <h2>Kom ihåg</h2>
+          <p class="muted compact">Saker du inte behöver hålla i huvudet.</p>
+        </div>
         <button id="addInboxBtn" class="small-btn">＋ Lägg till</button>
       </div>
+
+      <div class="search-wrap">
+        <input id="inboxSearch" type="search" placeholder="Sök bland saker..." />
+      </div>
+
       <div id="inboxList" class="list"></div>
       <div id="inboxEmpty" class="empty">Här hamnar saker du vill få ur huvudet.</div>
     </section>
 
     <section id="routines" class="panel">
       <div class="panel-head">
-        <h2>Rutiner</h2>
+        <div>
+          <h2>Rutiner</h2>
+          <p class="muted compact">Små steg, samma ordning.</p>
+        </div>
         <button id="addRoutineBtn" class="small-btn">＋ Ny rutin</button>
       </div>
       <div id="routineList" class="routine-grid"></div>
@@ -81,14 +115,22 @@
   <dialog id="quickDialog">
     <form method="dialog" id="quickForm" class="dialog-card">
       <div class="dialog-head">
-        <h2>Kom ihåg något</h2>
+        <h2 id="quickDialogTitle">Få ur huvudet</h2>
         <button value="cancel" class="icon-btn" aria-label="Stäng">✕</button>
       </div>
+
       <label>
-        Vad vill du få ur huvudet?
+        Vad vill du komma ihåg?
         <textarea id="quickText" rows="3" placeholder="T.ex. Ring tandläkaren"></textarea>
       </label>
-      <div class="two-col">
+
+      <div class="choice-row">
+        <button type="button" class="choice-chip active" data-when="later">Senare</button>
+        <button type="button" class="choice-chip" data-when="today">Idag</button>
+        <button type="button" class="choice-chip" data-when="now">Nu</button>
+      </div>
+
+      <div id="dateTimeArea" class="two-col hidden">
         <label>Datum
           <input id="quickDate" type="date" />
         </label>
@@ -96,12 +138,42 @@
           <input id="quickTime" type="time" />
         </label>
       </div>
-      <label class="checkbox-line">
-        <input id="quickMakeNow" type="checkbox" />
-        Gör detta till min NU-uppgift
+
+      <label>
+        Små steg <span class="optional">(valfritt, ett per rad)</span>
+        <textarea id="quickSteps" rows="4" placeholder="Öppna kontaktlistan&#10;Hitta numret&#10;Ring"></textarea>
       </label>
+
       <button id="saveQuickBtn" value="default" class="primary full">Spara</button>
       <p class="microcopy">Du behöver inte sortera allt nu.</p>
+    </form>
+  </dialog>
+
+  <dialog id="editTaskDialog">
+    <form method="dialog" id="editTaskForm" class="dialog-card">
+      <div class="dialog-head">
+        <h2>Redigera</h2>
+        <button value="cancel" class="icon-btn" aria-label="Stäng">✕</button>
+      </div>
+      <input id="editTaskId" type="hidden" />
+      <label>Uppgift
+        <textarea id="editTaskText" rows="3"></textarea>
+      </label>
+      <div class="two-col">
+        <label>Datum
+          <input id="editTaskDate" type="date" />
+        </label>
+        <label>Tid
+          <input id="editTaskTime" type="time" />
+        </label>
+      </div>
+      <label>Små steg
+        <textarea id="editTaskSteps" rows="5"></textarea>
+      </label>
+      <div class="dialog-actions">
+        <button id="deleteTaskBtn" type="button" class="danger-btn">Ta bort</button>
+        <button value="default" class="primary">Spara</button>
+      </div>
     </form>
   </dialog>
 
@@ -130,7 +202,15 @@
       <label>Apps Script Web App URL
         <input id="apiUrl" type="url" placeholder="https://script.google.com/macros/s/..." />
       </label>
-      <p class="microcopy">Lämna tomt för att köra lokalt i mobilen/webbläsaren.</p>
+      <label class="checkbox-line">
+        <input id="reduceMotion" type="checkbox" />
+        Minska rörelse och animationer
+      </label>
+      <label class="checkbox-line">
+        <input id="largeText" type="checkbox" />
+        Större text
+      </label>
+      <p class="microcopy">Appen fungerar även offline och synkar när backend finns.</p>
       <button id="saveSettingsBtn" value="default" class="primary full">Spara</button>
     </form>
   </dialog>
@@ -138,11 +218,12 @@
   <template id="taskTemplate">
     <article class="task-item">
       <button class="check-btn" aria-label="Markera klar">○</button>
-      <div class="task-main">
+      <button class="task-main task-open" type="button">
         <strong class="task-text"></strong>
         <span class="task-meta"></span>
-      </div>
-      <button class="more-btn" aria-label="Mer">⋯</button>
+        <span class="task-steps-meta"></span>
+      </button>
+      <button class="more-btn" aria-label="Redigera">•••</button>
     </article>
   </template>
 
