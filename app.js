@@ -2,6 +2,7 @@ const STORAGE_KEY = "min-hjalp-v2";
 const LEGACY_STORAGE_KEY = "min-hjalp-v1";
 const API_KEY = "min-hjalp-api-url";
 const PREF_KEY = "min-hjalp-prefs-v2";
+const VAPID_KEY_STORAGE = "min-hjalp-vapid-public-key";
 
 let state = loadState();
 let apiUrl = localStorage.getItem(API_KEY) || "";
@@ -73,7 +74,9 @@ const els = {
   installStatus: document.querySelector("#installStatus"),
   deleteCalendarBtn: document.querySelector("#deleteCalendarBtn"),
   capabilityList: document.querySelector("#capabilityList"),
-  pushInfoDialog: document.querySelector("#pushInfoDialog")
+  pushInfoDialog: document.querySelector("#pushInfoDialog"),
+  vapidPublicKey: document.querySelector("#vapidPublicKey"),
+  pushStatus: document.querySelector("#pushStatus")
 };
 
 function defaultState(){
@@ -667,6 +670,7 @@ document.querySelector("#settingsBtn").addEventListener("click", () => {
     els.syncStatus.textContent = "Senast synkad: " + new Date(lastSync).toLocaleString("sv-SE");
   }
   renderCapabilities();
+  refreshPushStatus();
   els.settingsDialog.showModal();
 });
 
@@ -1000,6 +1004,124 @@ if("serviceWorker" in navigator){
 }
 
 
+
+function urlBase64ToUint8Array(base64String){
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+}
+
+async function getPushRegistration(){
+  if(!("serviceWorker" in navigator)) throw new Error("Service Worker saknas");
+  return await navigator.serviceWorker.ready;
+}
+
+async function savePushSubscription(subscription){
+  if(!apiUrl) throw new Error("Backend-URL saknas");
+  await fetch(apiUrl, {
+    method:"POST",
+    mode:"no-cors",
+    headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body:JSON.stringify({
+      action:"pushSubscriptionSave",
+      payload:{
+        subscription: subscription.toJSON(),
+        userAgent: navigator.userAgent,
+        savedAt: new Date().toISOString()
+      }
+    })
+  });
+}
+
+async function subscribeToPush(){
+  if(!("Notification" in window) || !("PushManager" in window)){
+    setPushStatus("Push stöds inte i den här webbläsaren.", false);
+    return;
+  }
+
+  const key = (els.vapidPublicKey?.value || "").trim();
+  if(!key){
+    setPushStatus("Lägg först in VAPID public key.", false);
+    return;
+  }
+
+  localStorage.setItem(VAPID_KEY_STORAGE, key);
+
+  const permission = await Notification.requestPermission();
+  if(permission !== "granted"){
+    setPushStatus("Notiser är inte tillåtna.", false);
+    return;
+  }
+
+  try{
+    const registration = await getPushRegistration();
+    let subscription = await registration.pushManager.getSubscription();
+    if(!subscription){
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey:urlBase64ToUint8Array(key)
+      });
+    }
+    await savePushSubscription(subscription);
+    setPushStatus("Push är aktiverat på den här enheten.", true);
+    renderCapabilities();
+  }catch(err){
+    console.warn(err);
+    setPushStatus("Kunde inte aktivera push. Kontrollera VAPID-nyckeln och att appen är installerad.", false);
+  }
+}
+
+async function unsubscribeFromPush(){
+  try{
+    const registration = await getPushRegistration();
+    const subscription = await registration.pushManager.getSubscription();
+    if(subscription){
+      const endpoint = subscription.endpoint;
+      await subscription.unsubscribe();
+      if(apiUrl){
+        await fetch(apiUrl, {
+          method:"POST",
+          mode:"no-cors",
+          headers:{"Content-Type":"text/plain;charset=utf-8"},
+          body:JSON.stringify({action:"pushSubscriptionDelete", payload:{endpoint}})
+        });
+      }
+    }
+    setPushStatus("Push är avstängt på den här enheten.", false);
+    renderCapabilities();
+  }catch(err){
+    console.warn(err);
+    setPushStatus("Kunde inte avsluta push.", false);
+  }
+}
+
+function setPushStatus(text, ok){
+  if(!els.pushStatus) return;
+  els.pushStatus.textContent = text;
+  els.pushStatus.className = "microcopy left " + (ok ? "ok" : "warn");
+}
+
+async function refreshPushStatus(){
+  if(els.vapidPublicKey){
+    els.vapidPublicKey.value = localStorage.getItem(VAPID_KEY_STORAGE) || "";
+  }
+  if(!("serviceWorker" in navigator) || !("PushManager" in window)){
+    setPushStatus("Push stöds inte i den här miljön.", false);
+    return;
+  }
+  try{
+    const registration = await getPushRegistration();
+    const subscription = await registration.pushManager.getSubscription();
+    setPushStatus(subscription ? "Den här enheten har en aktiv pushprenumeration." : "Push är inte aktiverat ännu.", !!subscription);
+  }catch{
+    setPushStatus("Pushstatus kunde inte läsas.", false);
+  }
+}
+
+document.querySelector("#pushSubscribeBtn")?.addEventListener("click", subscribeToPush);
+document.querySelector("#pushUnsubscribeBtn")?.addEventListener("click", unsubscribeFromPush);
+
 function openTaskCount(){
   return state.tasks.filter(t => t.status !== "done").length;
 }
@@ -1024,6 +1146,7 @@ function renderCapabilities(){
     ["Notiser", "Notification" in window],
     ["Service Worker", "serviceWorker" in navigator],
     ["Push API", "PushManager" in window],
+    ["Pushprenumeration", "PushManager" in window && "serviceWorker" in navigator],
     ["App-badge", "setAppBadge" in navigator]
   ];
   els.capabilityList.innerHTML = "";

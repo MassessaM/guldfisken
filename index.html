@@ -379,6 +379,17 @@
       </div>
 
       <div class="settings-section">
+        <h3>Pushnotiser</h3>
+        <p class="microcopy left">Förbered den här enheten för riktiga pushnotiser.</p>
+        <label>VAPID public key
+          <input id="vapidPublicKey" type="text" placeholder="Klistra in publik VAPID-nyckel senare">
+        </label>
+        <button id="pushSubscribeBtn" type="button" class="small-btn full-width">Aktivera push på den här enheten</button>
+        <button id="pushUnsubscribeBtn" type="button" class="small-btn full-width">Avsluta push på den här enheten</button>
+        <p id="pushStatus" class="microcopy left"></p>
+      </div>
+
+      <div class="settings-section">
         <h3>Notiser & appikon</h3>
         <div id="capabilityList" class="capability-list"></div>
         <button id="badgeTestBtn" type="button" class="small-btn full-width">Testa app-badge</button>

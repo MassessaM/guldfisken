@@ -185,3 +185,6 @@ select{width:100%;border:1px solid var(--line);border-radius:14px;padding:13px;b
 .capability-yes{color:var(--accent)}
 .capability-no{color:var(--muted)}
 .settings-section .small-btn + .small-btn{margin-top:7px}
+
+#pushStatus.ok{color:var(--accent);font-weight:700}
+#pushStatus.warn{color:var(--muted)}

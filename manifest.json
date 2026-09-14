@@ -6,7 +6,7 @@
   "background_color": "#f6f4ef",
   "theme_color": "#29483f",
   "lang": "sv",
-  "description": "En lugn stödapp med fokus, synk, kalender, timer, badge och iPhone-stöd.",
+  "description": "En lugn stödapp med fokus, synk, kalender, timer och förberedd Web Push på iPhone.",
   "id": "./",
   "icons": [
     {

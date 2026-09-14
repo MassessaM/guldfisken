@@ -1,4 +1,4 @@
-const CACHE = "min-hjalp-v7";
+const CACHE = "min-hjalp-v8";
 const ASSETS = ["./","index.html","style.css","app.js","manifest.json"];
 
 self.addEventListener("install", event => {
@@ -36,7 +36,11 @@ self.addEventListener("push", event => {
     if(event.data) data.body = event.data.text();
   }
 
-  event.waitUntil(
+  const work = [];
+  if("setAppBadge" in self.navigator && Number.isFinite(Number(data.badgeCount))){
+    work.push(self.navigator.setAppBadge(Number(data.badgeCount)));
+  }
+  work.push(
     self.registration.showNotification(data.title || "Min hjälp", {
       body: data.body || "",
       icon: "icon-192.png",
@@ -44,6 +48,7 @@ self.addEventListener("push", event => {
       data: data.url || "./"
     })
   );
+  event.waitUntil(Promise.all(work));
 });
 
 self.addEventListener("notificationclick", event => {
