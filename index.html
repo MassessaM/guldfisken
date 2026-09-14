@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#f6f4ef" />
+  <title>Min hjälp</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">MIN HJÄLP</p>
+        <h1>Hej 👋</h1>
+        <p class="muted">En sak i taget.</p>
+      </div>
+      <button id="settingsBtn" class="icon-btn" aria-label="Inställningar">⚙️</button>
+    </header>
+
+    <section class="now-card" aria-labelledby="nowTitle">
+      <div class="section-label">NU</div>
+      <h2 id="nowTitle">Vad är nästa sak?</h2>
+      <p id="nowTaskText" class="now-task">Inget valt ännu.</p>
+      <div class="now-actions">
+        <button id="doneNowBtn" class="primary" disabled>✓ Klar</button>
+        <button id="skipNowBtn" class="secondary" disabled>Senare</button>
+      </div>
+    </section>
+
+    <button id="quickAddBtn" class="quick-add">＋ Kom ihåg något</button>
+
+    <nav class="tabs" aria-label="Huvudmeny">
+      <button class="tab active" data-tab="today">Idag</button>
+      <button class="tab" data-tab="inbox">Kom ihåg</button>
+      <button class="tab" data-tab="routines">Rutiner</button>
+      <button class="tab" data-tab="help">Hjälp mig</button>
+    </nav>
+
+    <section id="today" class="panel active">
+      <div class="panel-head">
+        <h2>Idag</h2>
+        <span id="todayDate" class="muted"></span>
+      </div>
+      <div id="todayList" class="list"></div>
+      <div id="todayEmpty" class="empty">Inget mer idag. Bra jobbat.</div>
+    </section>
+
+    <section id="inbox" class="panel">
+      <div class="panel-head">
+        <h2>Kom ihåg</h2>
+        <button id="addInboxBtn" class="small-btn">＋ Lägg till</button>
+      </div>
+      <div id="inboxList" class="list"></div>
+      <div id="inboxEmpty" class="empty">Här hamnar saker du vill få ur huvudet.</div>
+    </section>
+
+    <section id="routines" class="panel">
+      <div class="panel-head">
+        <h2>Rutiner</h2>
+        <button id="addRoutineBtn" class="small-btn">＋ Ny rutin</button>
+      </div>
+      <div id="routineList" class="routine-grid"></div>
+      <div id="routineEmpty" class="empty">Skapa en enkel rutin med små steg.</div>
+    </section>
+
+    <section id="help" class="panel">
+      <h2>Hjälp mig nu</h2>
+      <p class="muted">Välj det som känns närmast.</p>
+      <div class="help-grid">
+        <button class="help-card" data-help="start">🟢<span>Hjälp mig komma igång</span></button>
+        <button class="help-card" data-help="overload">🧠<span>Jag har för mycket i huvudet</span></button>
+        <button class="help-card" data-help="lost">🧭<span>Jag vet inte vad jag ska göra</span></button>
+        <button class="help-card" data-help="forgot">⏰<span>Jag har glömt något</span></button>
+      </div>
+      <div id="helpResponse" class="help-response hidden"></div>
+    </section>
+  </main>
+
+  <dialog id="quickDialog">
+    <form method="dialog" id="quickForm" class="dialog-card">
+      <div class="dialog-head">
+        <h2>Kom ihåg något</h2>
+        <button value="cancel" class="icon-btn" aria-label="Stäng">✕</button>
+      </div>
+      <label>
+        Vad vill du få ur huvudet?
+        <textarea id="quickText" rows="3" placeholder="T.ex. Ring tandläkaren"></textarea>
+      </label>
+      <div class="two-col">
+        <label>Datum
+          <input id="quickDate" type="date" />
+        </label>
+        <label>Tid
+          <input id="quickTime" type="time" />
+        </label>
+      </div>
+      <label class="checkbox-line">
+        <input id="quickMakeNow" type="checkbox" />
+        Gör detta till min NU-uppgift
+      </label>
+      <button id="saveQuickBtn" value="default" class="primary full">Spara</button>
+      <p class="microcopy">Du behöver inte sortera allt nu.</p>
+    </form>
+  </dialog>
+
+  <dialog id="routineDialog">
+    <form method="dialog" id="routineForm" class="dialog-card">
+      <div class="dialog-head">
+        <h2>Ny rutin</h2>
+        <button value="cancel" class="icon-btn" aria-label="Stäng">✕</button>
+      </div>
+      <label>Namn
+        <input id="routineName" type="text" placeholder="T.ex. Morgon" />
+      </label>
+      <label>Steg, ett per rad
+        <textarea id="routineSteps" rows="7" placeholder="Duscha&#10;Klä på mig&#10;Borsta tänderna&#10;Ta nycklar"></textarea>
+      </label>
+      <button id="saveRoutineBtn" value="default" class="primary full">Spara rutin</button>
+    </form>
+  </dialog>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" class="dialog-card">
+      <div class="dialog-head">
+        <h2>Inställningar</h2>
+        <button value="cancel" class="icon-btn" aria-label="Stäng">✕</button>
+      </div>
+      <label>Apps Script Web App URL
+        <input id="apiUrl" type="url" placeholder="https://script.google.com/macros/s/..." />
+      </label>
+      <p class="microcopy">Lämna tomt för att köra lokalt i mobilen/webbläsaren.</p>
+      <button id="saveSettingsBtn" value="default" class="primary full">Spara</button>
+    </form>
+  </dialog>
+
+  <template id="taskTemplate">
+    <article class="task-item">
+      <button class="check-btn" aria-label="Markera klar">○</button>
+      <div class="task-main">
+        <strong class="task-text"></strong>
+        <span class="task-meta"></span>
+      </div>
+      <button class="more-btn" aria-label="Mer">⋯</button>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
