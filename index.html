@@ -13,7 +13,7 @@
     <header class="topbar">
       <div>
         <p class="eyebrow">MIN HJÄLP</p>
-        <h1 id="greeting">Hej 👋</h1>
+        <h1 id="greeting">Hej</h1>
         <p class="muted" id="calmLine">En sak i taget.</p>
         <div class="energy-row" aria-label="Energinivå">
           <span class="energy-label">Energi:</span>
@@ -276,6 +276,7 @@
       </label>
       <div class="dialog-actions">
         <button id="deleteTaskBtn" type="button" class="danger-btn">Ta bort</button>
+        <button id="deleteCalendarBtn" type="button" class="small-btn hidden">Ta bort från kalender</button>
         <button value="default" class="primary">Spara</button>
       </div>
     </form>
@@ -364,6 +365,7 @@
         <h3>iPhone</h3>
         <p class="microcopy left">I Safari: Dela → Lägg till på hemskärmen → Öppna som webbapp.</p>
         <button id="installHelpBtn" type="button" class="small-btn full-width">Visa iPhone-guide</button>
+        <p id="installStatus" class="microcopy left"></p>
       </div>
       <p class="microcopy">Appen fungerar även offline och synkar när backend finns.</p>
       <button id="saveSettingsBtn" value="default" class="primary full">Spara</button>

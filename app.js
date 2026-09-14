@@ -69,7 +69,9 @@ const els = {
   leaveChecklist: document.querySelector("#leaveChecklist"),
   syncStatus: document.querySelector("#syncStatus"),
   cloudStatus: document.querySelector("#cloudStatus"),
-  iphoneDialog: document.querySelector("#iphoneDialog")
+  iphoneDialog: document.querySelector("#iphoneDialog"),
+  installStatus: document.querySelector("#installStatus"),
+  deleteCalendarBtn: document.querySelector("#deleteCalendarBtn")
 };
 
 function defaultState(){
@@ -190,9 +192,9 @@ function formatToday(){
 
 function formatGreeting(){
   const h = new Date().getHours();
-  if(h < 10) return "God morgon 👋";
-  if(h < 17) return "Hej 👋";
-  return "God kväll 👋";
+  if(h < 10) return "God morgon";
+  if(h < 17) return "Hej";
+  return "God kväll";
 }
 
 function getOpenToday(){
@@ -552,6 +554,7 @@ function openEditTask(task){
   els.editTaskReminder.checked = !!task.reminder;
   els.editTaskRecurrence.value = task.recurrence || "";
   els.editTaskCalendar.checked = !!task.calendar;
+  els.deleteCalendarBtn?.classList.toggle("hidden", !task.calendar);
   els.editTaskDialog.showModal();
 }
 
@@ -786,6 +789,31 @@ async function syncNow(){
 document.querySelector("#syncNowBtn")?.addEventListener("click", syncNow);
 document.querySelector("#installHelpBtn")?.addEventListener("click", () => els.iphoneDialog?.showModal());
 
+
+async function deleteCalendarTask(task){
+  if(!apiUrl || !task) return;
+  try{
+    await fetch(apiUrl, {
+      method:"POST",
+      mode:"no-cors",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({action:"calendarDelete", payload:task})
+    });
+    task.calendar = false;
+    task.calendarEventId = "";
+    saveState();
+  }catch(err){
+    console.warn("Kunde inte ta bort Calendar-händelsen.", err);
+  }
+}
+
+els.deleteCalendarBtn?.addEventListener("click", async () => {
+  const task = state.tasks.find(t => t.id === els.editTaskId.value);
+  if(!task) return;
+  await deleteCalendarTask(task);
+  els.editTaskDialog.close();
+});
+
 async function syncCalendarTask(task){
   if(!apiUrl || !task.date || !task.time) return;
   try{
@@ -961,8 +989,19 @@ if("serviceWorker" in navigator){
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(console.warn));
 }
 
+function updateInstallStatus(){
+  const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  if(els.installStatus){
+    els.installStatus.textContent = standalone
+      ? "Min hjälp körs som en installerad app på den här enheten."
+      : "Just nu körs Min hjälp i webbläsaren.";
+    els.installStatus.className = "microcopy left " + (standalone ? "install-ok" : "install-web");
+  }
+}
+
 applyPrefs();
 render();
+updateInstallStatus();
 if(apiUrl){
   setTimeout(() => syncNow().catch(console.warn), 800);
 }

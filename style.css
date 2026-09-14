@@ -175,3 +175,6 @@ select{width:100%;border:1px solid var(--line);border-radius:14px;padding:13px;b
 .iphone-steps{display:grid;gap:10px;margin:14px 0 18px}
 .iphone-steps div{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start;background:#fbfaf8;border:1px solid var(--line);border-radius:14px;padding:11px}
 .iphone-steps strong{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff}
+
+.install-ok{color:var(--accent);font-weight:700}
+.install-web{color:var(--muted)}

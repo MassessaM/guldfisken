@@ -1,4 +1,4 @@
-const CACHE = "min-hjalp-v5";
+const CACHE = "min-hjalp-v6";
 const ASSETS = ["./","index.html","style.css","app.js","manifest.json"];
 
 self.addEventListener("install", event => {
