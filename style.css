@@ -112,3 +112,35 @@ textarea{resize:vertical}
   .tab{font-size:.76rem}
   .two-col{grid-template-columns:1fr}
 }
+
+.quick-stack{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin:16px 0 10px}
+.quick-stack .quick-add{margin:0}
+.voice-add{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:15px;padding:17px 14px;font-weight:750;white-space:nowrap}
+.voice-add.listening{background:var(--accent-soft);color:var(--accent)}
+.tabs{grid-template-columns:repeat(5,1fr)}
+.solid{background:var(--accent);color:#fff}
+.full-width{width:100%}
+.left{text-align:left}
+.timer-card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:20px}
+.timer-ring-wrap{position:relative;width:min(280px,80vw);aspect-ratio:1;margin:6px auto 18px}
+.timer-ring{width:100%;height:100%;transform:rotate(-90deg)}
+.timer-ring-bg,.timer-ring-progress{fill:none;stroke-width:10}
+.timer-ring-bg{stroke:#ece9e2}
+.timer-ring-progress{stroke:var(--accent);stroke-linecap:round;stroke-dasharray:314.159;stroke-dashoffset:0;transition:stroke-dashoffset .5s linear}
+.timer-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.timer-center strong{font-size:3rem;letter-spacing:-.04em}
+.timer-center span{color:var(--muted);font-weight:700}
+.timer-presets{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:12px 0}
+.timer-preset{border:0;border-radius:999px;background:#ece9e2;padding:10px 6px;font-weight:700;color:var(--text)}
+.timer-preset.active{background:var(--accent);color:#fff}
+.timer-actions{display:flex;gap:8px;justify-content:center;margin-top:14px}
+.timer-option{margin-top:18px}
+.reminder-badge{display:inline-flex;align-items:center;gap:4px;font-size:.76rem;color:var(--accent);font-weight:750}
+@media(max-width:520px){
+  .quick-stack{grid-template-columns:1fr}
+  .voice-add{width:100%}
+  .timer-presets{grid-template-columns:repeat(3,1fr)}
+  .timer-center strong{font-size:2.5rem}
+  .tabs{grid-template-columns:repeat(5,1fr)}
+  .tab{font-size:.69rem}
+}

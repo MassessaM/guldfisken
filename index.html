@@ -43,7 +43,10 @@
       </div>
     </section>
 
-    <button id="quickAddBtn" class="quick-add">＋ Få ur huvudet</button>
+    <div class="quick-stack">
+      <button id="quickAddBtn" class="quick-add">＋ Få ur huvudet</button>
+      <button id="voiceCaptureBtn" class="voice-add" type="button">🎤 Säg det istället</button>
+    </div>
 
     <section class="capture-strip">
       <button class="capture-choice" data-capture="now">⚡ Nu</button>
@@ -55,7 +58,8 @@
       <button class="tab active" data-tab="today">Idag</button>
       <button class="tab" data-tab="inbox">Kom ihåg</button>
       <button class="tab" data-tab="routines">Rutiner</button>
-      <button class="tab" data-tab="help">Hjälp mig</button>
+      <button class="tab" data-tab="timer">Timer</button>
+      <button class="tab" data-tab="help">Hjälp</button>
     </nav>
 
     <section id="today" class="panel active">
@@ -97,6 +101,48 @@
       </div>
       <div id="routineList" class="routine-grid"></div>
       <div id="routineEmpty" class="empty">Skapa en enkel rutin med små steg.</div>
+    </section>
+
+
+    <section id="timer" class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Visuell timer</h2>
+          <p class="muted compact">Gör tiden synlig.</p>
+        </div>
+      </div>
+
+      <div class="timer-card">
+        <div class="timer-ring-wrap">
+          <svg class="timer-ring" viewBox="0 0 120 120" aria-label="Visuell timer">
+            <circle class="timer-ring-bg" cx="60" cy="60" r="50"></circle>
+            <circle id="timerRingProgress" class="timer-ring-progress" cx="60" cy="60" r="50"></circle>
+          </svg>
+          <div class="timer-center">
+            <strong id="timerDisplay">10:00</strong>
+            <span id="timerLabel">10 minuter</span>
+          </div>
+        </div>
+
+        <div class="timer-presets">
+          <button class="timer-preset" data-minutes="2">2 min</button>
+          <button class="timer-preset" data-minutes="5">5 min</button>
+          <button class="timer-preset active" data-minutes="10">10 min</button>
+          <button class="timer-preset" data-minutes="15">15 min</button>
+          <button class="timer-preset" data-minutes="25">25 min</button>
+        </div>
+
+        <div class="timer-actions">
+          <button id="timerStartBtn" class="primary solid">Starta</button>
+          <button id="timerPauseBtn" class="small-btn" disabled>Paus</button>
+          <button id="timerResetBtn" class="small-btn">Nollställ</button>
+        </div>
+
+        <label class="checkbox-line timer-option">
+          <input id="timerNotify" type="checkbox" checked />
+          Visa notis när tiden är slut, om enheten tillåter det
+        </label>
+      </div>
     </section>
 
     <section id="help" class="panel">
@@ -144,6 +190,12 @@
         <textarea id="quickSteps" rows="4" placeholder="Öppna kontaktlistan&#10;Hitta numret&#10;Ring"></textarea>
       </label>
 
+      <label class="checkbox-line">
+        <input id="quickReminder" type="checkbox" />
+        Påminn mig när tiden kommer
+      </label>
+      <p id="reminderHint" class="microcopy left hidden">Påminnelsen fungerar i webbläsaren när appen är igång. Nästa steg blir Google Calendar för säkrare notiser.</p>
+
       <button id="saveQuickBtn" value="default" class="primary full">Spara</button>
       <p class="microcopy">Du behöver inte sortera allt nu.</p>
     </form>
@@ -169,6 +221,10 @@
       </div>
       <label>Små steg
         <textarea id="editTaskSteps" rows="5"></textarea>
+      </label>
+      <label class="checkbox-line">
+        <input id="editTaskReminder" type="checkbox" />
+        Påminn mig
       </label>
       <div class="dialog-actions">
         <button id="deleteTaskBtn" type="button" class="danger-btn">Ta bort</button>
@@ -210,6 +266,8 @@
         <input id="largeText" type="checkbox" />
         Större text
       </label>
+      <button id="notificationPermissionBtn" type="button" class="small-btn full-width">Tillåt notiser</button>
+      <p id="notificationStatus" class="microcopy"></p>
       <p class="microcopy">Appen fungerar även offline och synkar när backend finns.</p>
       <button id="saveSettingsBtn" value="default" class="primary full">Spara</button>
     </form>

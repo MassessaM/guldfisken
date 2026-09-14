@@ -32,6 +32,8 @@ const els = {
   quickDate: document.querySelector("#quickDate"),
   quickTime: document.querySelector("#quickTime"),
   quickSteps: document.querySelector("#quickSteps"),
+  quickReminder: document.querySelector("#quickReminder"),
+  reminderHint: document.querySelector("#reminderHint"),
   dateTimeArea: document.querySelector("#dateTimeArea"),
   routineDialog: document.querySelector("#routineDialog"),
   routineName: document.querySelector("#routineName"),
@@ -47,13 +49,22 @@ const els = {
   editTaskText: document.querySelector("#editTaskText"),
   editTaskDate: document.querySelector("#editTaskDate"),
   editTaskTime: document.querySelector("#editTaskTime"),
-  editTaskSteps: document.querySelector("#editTaskSteps")
+  editTaskSteps: document.querySelector("#editTaskSteps"),
+  editTaskReminder: document.querySelector("#editTaskReminder"),
+  notificationStatus: document.querySelector("#notificationStatus"),
+  timerDisplay: document.querySelector("#timerDisplay"),
+  timerLabel: document.querySelector("#timerLabel"),
+  timerRingProgress: document.querySelector("#timerRingProgress"),
+  timerStartBtn: document.querySelector("#timerStartBtn"),
+  timerPauseBtn: document.querySelector("#timerPauseBtn"),
+  timerResetBtn: document.querySelector("#timerResetBtn"),
+  timerNotify: document.querySelector("#timerNotify")
 };
 
 function defaultState(){
   return {
     tasks: [
-      {id: crypto.randomUUID(), text:"Testa appen och lägg till en egen sak", date: todayISO(), time:"", status:"open", inbox:false, priority:"normal", steps:[], currentStep:0}
+      {id: crypto.randomUUID(), text:"Testa appen och lägg till en egen sak", date: todayISO(), time:"", status:"open", inbox:false, priority:"normal", steps:[], currentStep:0, reminder:false, reminderFired:false}
     ],
     routines: [
       {id: crypto.randomUUID(), name:"Morgon", steps:[
@@ -78,7 +89,9 @@ function normalizeState(s){
     inbox: typeof t.inbox === "boolean" ? t.inbox : !t.date,
     priority: t.priority || "normal",
     steps: Array.isArray(t.steps) ? t.steps : [],
-    currentStep: Number.isInteger(t.currentStep) ? t.currentStep : 0
+    currentStep: Number.isInteger(t.currentStep) ? t.currentStep : 0,
+    reminder: !!t.reminder,
+    reminderFired: !!t.reminderFired
   }));
   copy.routines = (copy.routines || []).map(r => ({
     id: r.id || crypto.randomUUID(),
@@ -238,7 +251,10 @@ function renderTaskList(container, tasks){
     node.querySelector(".task-text").textContent = task.text;
     node.querySelector(".task-meta").textContent = [task.date === todayISO() ? "Idag" : task.date, task.time].filter(Boolean).join(" • ");
     const stepsMeta = node.querySelector(".task-steps-meta");
-    if(task.steps?.length) stepsMeta.textContent = `${task.steps.length} små steg`;
+    const bits = [];
+    if(task.steps?.length) bits.push(`${task.steps.length} små steg`);
+    if(task.reminder) bits.push("🔔 påminnelse");
+    stepsMeta.textContent = bits.join(" • ");
 
     node.querySelector(".check-btn").addEventListener("click", () => completeTask(task.id));
     node.querySelector(".task-open").addEventListener("click", () => {
@@ -316,7 +332,9 @@ function renderRoutines(){
         inbox:false,
         priority:"normal",
         steps:routine.steps.map(s => s.text),
-        currentStep:0
+        currentStep:0,
+        reminder:false,
+        reminderFired:false
       };
       state.tasks.push(task);
       state.nowTaskId = task.id;
@@ -360,6 +378,8 @@ function setWhen(when){
 function openQuick(when="later"){
   els.quickText.value = "";
   els.quickSteps.value = "";
+  els.quickReminder.checked = false;
+  els.reminderHint.classList.add("hidden");
   setWhen(when);
   els.quickDialog.showModal();
   setTimeout(() => els.quickText.focus(), 50);
@@ -369,6 +389,11 @@ document.querySelector("#quickAddBtn").addEventListener("click", () => openQuick
 document.querySelector("#addInboxBtn").addEventListener("click", () => openQuick("later"));
 document.querySelectorAll(".capture-choice").forEach(btn => btn.addEventListener("click", () => openQuick(btn.dataset.capture)));
 document.querySelectorAll(".choice-chip").forEach(btn => btn.addEventListener("click", () => setWhen(btn.dataset.when)));
+
+els.quickReminder.addEventListener("change", async () => {
+  els.reminderHint.classList.toggle("hidden", !els.quickReminder.checked);
+  if(els.quickReminder.checked) await requestNotificationPermission();
+});
 
 document.querySelector("#quickForm").addEventListener("submit", (e) => {
   if(e.submitter?.value === "cancel") return;
@@ -386,7 +411,9 @@ document.querySelector("#quickForm").addEventListener("submit", (e) => {
     inbox:selectedWhen === "later",
     priority:"normal",
     steps,
-    currentStep:0
+    currentStep:0,
+    reminder: !!els.quickReminder.checked,
+    reminderFired:false
   };
   state.tasks.push(task);
   if(selectedWhen === "now") state.nowTaskId = task.id;
@@ -400,6 +427,7 @@ function openEditTask(task){
   els.editTaskDate.value = task.date || "";
   els.editTaskTime.value = task.time || "";
   els.editTaskSteps.value = (task.steps || []).join("\n");
+  els.editTaskReminder.checked = !!task.reminder;
   els.editTaskDialog.showModal();
 }
 
@@ -414,6 +442,8 @@ document.querySelector("#editTaskForm").addEventListener("submit", (e) => {
   task.inbox = !task.date;
   task.steps = els.editTaskSteps.value.split("\n").map(s => s.trim()).filter(Boolean);
   task.currentStep = Math.min(task.currentStep || 0, Math.max(0, task.steps.length - 1));
+  task.reminder = !!els.editTaskReminder.checked;
+  if(!task.reminder) task.reminderFired = false;
   saveState();
   els.editTaskDialog.close();
 });
@@ -489,6 +519,15 @@ document.querySelector("#settingsBtn").addEventListener("click", () => {
   els.apiUrl.value = apiUrl;
   els.reduceMotion.checked = !!prefs.reduceMotion;
   els.largeText.checked = !!prefs.largeText;
+  if("Notification" in window){
+    updateNotificationStatus(
+      Notification.permission === "granted" ? "Notiser är tillåtna." :
+      Notification.permission === "denied" ? "Notiser är blockerade." :
+      "Notiser är inte aktiverade ännu."
+    );
+  }else{
+    updateNotificationStatus("Notiser stöds inte av den här webbläsaren.");
+  }
   els.settingsDialog.showModal();
 });
 
@@ -516,6 +555,164 @@ document.querySelectorAll(".help-card").forEach(btn => {
     els.helpResponse.classList.remove("hidden");
   });
 });
+
+
+async function requestNotificationPermission(){
+  if(!("Notification" in window)){
+    updateNotificationStatus("Notiser stöds inte av den här webbläsaren.");
+    return false;
+  }
+  if(Notification.permission === "granted"){
+    updateNotificationStatus("Notiser är tillåtna.");
+    return true;
+  }
+  if(Notification.permission === "denied"){
+    updateNotificationStatus("Notiser är blockerade i webbläsarens inställningar.");
+    return false;
+  }
+  const result = await Notification.requestPermission();
+  updateNotificationStatus(result === "granted" ? "Notiser är tillåtna." : "Notiser är inte tillåtna.");
+  return result === "granted";
+}
+
+function updateNotificationStatus(text){
+  if(els.notificationStatus) els.notificationStatus.textContent = text;
+}
+
+document.querySelector("#notificationPermissionBtn")?.addEventListener("click", requestNotificationPermission);
+
+function maybeFireTaskReminders(){
+  const now = new Date();
+  let changed = false;
+  state.tasks.forEach(task => {
+    if(!task.reminder || task.reminderFired || task.status === "done" || !task.date || !task.time) return;
+    const due = new Date(`${task.date}T${task.time}:00`);
+    if(Number.isNaN(due.getTime())) return;
+    const delta = now - due;
+    if(delta >= 0 && delta < 5 * 60 * 1000){
+      task.reminderFired = true;
+      changed = true;
+      if("Notification" in window && Notification.permission === "granted"){
+        new Notification("Min hjälp", {body: task.text});
+      }
+    }
+  });
+  if(changed){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    render();
+    syncState();
+  }
+}
+setInterval(maybeFireTaskReminders, 30000);
+window.addEventListener("focus", maybeFireTaskReminders);
+
+const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+const voiceBtn = document.querySelector("#voiceCaptureBtn");
+if(!SpeechRecognitionCtor){
+  if(voiceBtn) voiceBtn.title = "Röstinmatning stöds inte här. Använd mikrofonen i tangentbordet istället.";
+}else if(voiceBtn){
+  const recognition = new SpeechRecognitionCtor();
+  recognition.lang = "sv-SE";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  voiceBtn.addEventListener("click", () => {
+    try{
+      voiceBtn.classList.add("listening");
+      voiceBtn.textContent = "🎙️ Lyssnar…";
+      recognition.start();
+    }catch{}
+  });
+
+  recognition.addEventListener("result", event => {
+    const text = event.results?.[0]?.[0]?.transcript?.trim();
+    if(text){
+      openQuick("later");
+      els.quickText.value = text;
+    }
+  });
+
+  recognition.addEventListener("end", () => {
+    voiceBtn.classList.remove("listening");
+    voiceBtn.textContent = "🎤 Säg det istället";
+  });
+
+  recognition.addEventListener("error", () => {
+    voiceBtn.classList.remove("listening");
+    voiceBtn.textContent = "🎤 Säg det istället";
+  });
+}
+
+let timerTotal = 10 * 60;
+let timerRemaining = timerTotal;
+let timerInterval = null;
+let timerRunning = false;
+const circumference = 2 * Math.PI * 50;
+
+function formatTimer(seconds){
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+}
+
+function renderTimer(){
+  if(!els.timerDisplay) return;
+  els.timerDisplay.textContent = formatTimer(timerRemaining);
+  els.timerLabel.textContent = `${Math.round(timerTotal/60)} minuter`;
+  const progress = timerTotal ? timerRemaining / timerTotal : 0;
+  els.timerRingProgress.style.strokeDasharray = circumference;
+  els.timerRingProgress.style.strokeDashoffset = circumference * (1 - progress);
+  els.timerStartBtn.textContent = timerRunning ? "Pågår…" : (timerRemaining < timerTotal ? "Fortsätt" : "Starta");
+  els.timerStartBtn.disabled = timerRunning;
+  els.timerPauseBtn.disabled = !timerRunning;
+}
+
+function chooseTimer(minutes){
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerTotal = minutes * 60;
+  timerRemaining = timerTotal;
+  document.querySelectorAll(".timer-preset").forEach(b => b.classList.toggle("active", Number(b.dataset.minutes) === minutes));
+  renderTimer();
+}
+
+document.querySelectorAll(".timer-preset").forEach(btn => {
+  btn.addEventListener("click", () => chooseTimer(Number(btn.dataset.minutes)));
+});
+
+els.timerStartBtn?.addEventListener("click", async () => {
+  if(els.timerNotify.checked) await requestNotificationPermission();
+  if(timerRemaining <= 0) timerRemaining = timerTotal;
+  timerRunning = true;
+  const expectedEnd = Date.now() + timerRemaining * 1000;
+  timerInterval = setInterval(() => {
+    timerRemaining = Math.max(0, Math.ceil((expectedEnd - Date.now()) / 1000));
+    renderTimer();
+    if(timerRemaining <= 0){
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerRunning = false;
+      renderTimer();
+      if(els.timerNotify.checked && "Notification" in window && Notification.permission === "granted"){
+        new Notification("Tiden är slut", {body:"Bra. Stanna upp och välj vad som är nästa lilla steg."});
+      }
+      if(navigator.vibrate) navigator.vibrate([200,120,200]);
+    }
+  }, 250);
+  renderTimer();
+});
+
+els.timerPauseBtn?.addEventListener("click", () => {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  timerRunning = false;
+  renderTimer();
+});
+
+els.timerResetBtn?.addEventListener("click", () => chooseTimer(Math.round(timerTotal/60)));
+
+renderTimer();
+maybeFireTaskReminders();
 
 if("serviceWorker" in navigator){
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(console.warn));
