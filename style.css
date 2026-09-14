@@ -165,3 +165,13 @@ select{width:100%;border:1px solid var(--line);border-radius:14px;padding:13px;b
   .tabs{grid-template-columns:repeat(6,1fr)}
   .tab{font-size:.61rem;padding:9px 1px}
 }
+
+.header-actions{display:flex;align-items:center;gap:4px}
+.cloud-status{font-size:1rem;color:var(--muted);padding:8px 2px}
+.cloud-status.ok{color:var(--accent)}
+.cloud-status.busy{opacity:.55}
+.settings-section{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.settings-section h3{margin:0 0 10px;font-size:1rem}
+.iphone-steps{display:grid;gap:10px;margin:14px 0 18px}
+.iphone-steps div{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start;background:#fbfaf8;border:1px solid var(--line);border-radius:14px;padding:11px}
+.iphone-steps strong{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff}

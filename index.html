@@ -22,7 +22,10 @@
           <button class="energy-chip" data-energy="high">Hög</button>
         </div>
       </div>
-      <button id="settingsBtn" class="icon-btn" aria-label="Inställningar">⚙️</button>
+      <div class="header-actions">
+        <span id="cloudStatus" class="cloud-status" title="Synkstatus">☁︎</span>
+        <button id="settingsBtn" class="icon-btn" aria-label="Inställningar">⚙️</button>
+      </div>
     </header>
 
     <section class="now-card" aria-labelledby="nowTitle">
@@ -307,6 +310,25 @@
     </form>
   </dialog>
 
+
+  <dialog id="iphoneDialog">
+    <form method="dialog" class="dialog-card">
+      <div class="dialog-head">
+        <h2>Använd som app på iPhone</h2>
+        <button value="cancel" class="icon-btn" aria-label="Stäng">✕</button>
+      </div>
+      <div class="iphone-steps">
+        <div><strong>1</strong><span>Öppna din GitHub Pages-länk i Safari.</span></div>
+        <div><strong>2</strong><span>Tryck på Dela.</span></div>
+        <div><strong>3</strong><span>Välj Lägg till på hemskärmen.</span></div>
+        <div><strong>4</strong><span>Ha Öppna som webbapp aktiverat och tryck Lägg till.</span></div>
+        <div><strong>5</strong><span>Öppna Min hjälp från hemskärmen och tillåt notiser i appens inställningar.</span></div>
+        <div><strong>6</strong><span>Om du använder Google Calendar kan samma händelser visas i Google Kalender eller Apple Kalender på iPhone.</span></div>
+      </div>
+      <button value="default" class="primary solid full">Klart</button>
+    </form>
+  </dialog>
+
   <dialog id="settingsDialog">
     <form method="dialog" class="dialog-card">
       <div class="dialog-head">
@@ -331,6 +353,18 @@
         Använd Google Calendar för påminnelser
       </label>
       <p class="microcopy left">Calendar-händelser skapas via Apps Script när en uppgift har datum och tid.</p>
+
+      <div class="settings-section">
+        <h3>Synk & backup</h3>
+        <button id="syncNowBtn" type="button" class="small-btn full-width">↕ Synka nu</button>
+        <p id="syncStatus" class="microcopy left">Data sparas lokalt och i Google Sheets när backend är kopplad.</p>
+      </div>
+
+      <div class="settings-section">
+        <h3>iPhone</h3>
+        <p class="microcopy left">I Safari: Dela → Lägg till på hemskärmen → Öppna som webbapp.</p>
+        <button id="installHelpBtn" type="button" class="small-btn full-width">Visa iPhone-guide</button>
+      </div>
       <p class="microcopy">Appen fungerar även offline och synkar när backend finns.</p>
       <button id="saveSettingsBtn" value="default" class="primary full">Spara</button>
     </form>

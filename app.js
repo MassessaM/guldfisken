@@ -66,7 +66,10 @@ const els = {
   weekList: document.querySelector("#weekList"),
   calendarEnabled: document.querySelector("#calendarEnabled"),
   leaveDialog: document.querySelector("#leaveDialog"),
-  leaveChecklist: document.querySelector("#leaveChecklist")
+  leaveChecklist: document.querySelector("#leaveChecklist"),
+  syncStatus: document.querySelector("#syncStatus"),
+  cloudStatus: document.querySelector("#cloudStatus"),
+  iphoneDialog: document.querySelector("#iphoneDialog")
 };
 
 function defaultState(){
@@ -156,6 +159,7 @@ function saveState(){
 
 async function syncState(){
   if(!apiUrl) return;
+  setCloudStatus("busy");
   try{
     await fetch(apiUrl, {
       method:"POST",
@@ -163,8 +167,13 @@ async function syncState(){
       headers:{"Content-Type":"text/plain;charset=utf-8"},
       body:JSON.stringify({action:"sync", payload:state})
     });
-    localStorage.setItem("min-hjalp-last-sync", new Date().toISOString());
+    const stamp = new Date().toISOString();
+    localStorage.setItem("min-hjalp-last-sync", stamp);
+    setCloudStatus("ok");
+    if(els.syncStatus) els.syncStatus.textContent = "Senast skickad till Google: " + new Date(stamp).toLocaleString("sv-SE");
   }catch(err){
+    setCloudStatus("error");
+    if(els.syncStatus) els.syncStatus.textContent = "Kunde inte synka. Datan finns kvar lokalt.";
     console.warn("Synk misslyckades. Data finns kvar lokalt.", err);
   }
 }
@@ -647,6 +656,10 @@ document.querySelector("#settingsBtn").addEventListener("click", () => {
   }else{
     updateNotificationStatus("Notiser stöds inte av den här webbläsaren.");
   }
+  const lastSync = localStorage.getItem("min-hjalp-last-sync");
+  if(els.syncStatus && lastSync){
+    els.syncStatus.textContent = "Senast synkad: " + new Date(lastSync).toLocaleString("sv-SE");
+  }
   els.settingsDialog.showModal();
 });
 
@@ -707,6 +720,71 @@ document.querySelectorAll(".help-card").forEach(btn => {
 });
 
 
+
+
+function setCloudStatus(mode){
+  if(!els.cloudStatus) return;
+  els.cloudStatus.className = "cloud-status" + (mode ? " " + mode : "");
+  els.cloudStatus.textContent = mode === "ok" ? "☁︎✓" : mode === "busy" ? "☁︎…" : "☁︎";
+}
+
+function pullStateFromGoogle(){
+  return new Promise((resolve, reject) => {
+    if(!apiUrl) return reject(new Error("Ingen backend-URL"));
+    const callbackName = "__minHjalpState_" + Date.now();
+    const script = document.createElement("script");
+    const sep = apiUrl.includes("?") ? "&" : "?";
+    const timeout = setTimeout(() => cleanup(new Error("Timeout")), 10000);
+
+    function cleanup(err, data){
+      clearTimeout(timeout);
+      delete window[callbackName];
+      script.remove();
+      if(err) reject(err); else resolve(data);
+    }
+
+    window[callbackName] = (data) => cleanup(null, data);
+    script.onerror = () => cleanup(new Error("Kunde inte läsa Google-data"));
+    script.src = `${apiUrl}${sep}action=state&callback=${encodeURIComponent(callbackName)}&_=${Date.now()}`;
+    document.head.appendChild(script);
+  });
+}
+
+async function syncNow(){
+  if(!apiUrl){
+    if(els.syncStatus) els.syncStatus.textContent = "Lägg först in din Apps Script Web App URL.";
+    return;
+  }
+  setCloudStatus("busy");
+  if(els.syncStatus) els.syncStatus.textContent = "Synkar…";
+  try{
+    const remote = await pullStateFromGoogle();
+    if(remote?.ok && remote.state){
+      const remoteTime = new Date(remote.state.updatedAt || 0).getTime();
+      const localTime = new Date(state.updatedAt || 0).getTime();
+      if(remoteTime > localTime){
+        state = normalizeState(remote.state);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        render();
+        if(els.syncStatus) els.syncStatus.textContent = "Hämtade nyare data från Google.";
+      }else{
+        await syncState();
+        if(els.syncStatus) els.syncStatus.textContent = "Google är uppdaterat med den här enheten.";
+      }
+    }else{
+      await syncState();
+      if(els.syncStatus) els.syncStatus.textContent = "Skickade lokal data till Google.";
+    }
+    setCloudStatus("ok");
+  }catch(err){
+    console.warn(err);
+    await syncState();
+    if(els.syncStatus) els.syncStatus.textContent = "Kunde inte läsa tillbaka data, men skickade lokal backup.";
+  }
+}
+
+document.querySelector("#syncNowBtn")?.addEventListener("click", syncNow);
+document.querySelector("#installHelpBtn")?.addEventListener("click", () => els.iphoneDialog?.showModal());
 
 async function syncCalendarTask(task){
   if(!apiUrl || !task.date || !task.time) return;
@@ -885,3 +963,6 @@ if("serviceWorker" in navigator){
 
 applyPrefs();
 render();
+if(apiUrl){
+  setTimeout(() => syncNow().catch(console.warn), 800);
+}
