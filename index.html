@@ -381,10 +381,12 @@
       <div class="settings-section">
         <h3>Pushnotiser</h3>
         <p class="microcopy left">Förbered den här enheten för riktiga pushnotiser.</p>
-        <label>VAPID public key
-          <input id="vapidPublicKey" type="text" placeholder="Klistra in publik VAPID-nyckel senare">
+        <label>Push-server URL
+          <input id="pushServerUrl" type="url" placeholder="https://din-push-server.run.app">
         </label>
+        <p class="microcopy left">Appen hämtar den publika VAPID-nyckeln automatiskt från servern. Ingen privat nyckel hamnar i GitHub.</p>
         <button id="pushSubscribeBtn" type="button" class="small-btn full-width">Aktivera push på den här enheten</button>
+        <button id="pushTestBtn" type="button" class="small-btn full-width">Skicka testnotis</button>
         <button id="pushUnsubscribeBtn" type="button" class="small-btn full-width">Avsluta push på den här enheten</button>
         <p id="pushStatus" class="microcopy left"></p>
       </div>
