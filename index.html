@@ -15,6 +15,12 @@
         <p class="eyebrow">MIN HJÄLP</p>
         <h1 id="greeting">Hej 👋</h1>
         <p class="muted" id="calmLine">En sak i taget.</p>
+        <div class="energy-row" aria-label="Energinivå">
+          <span class="energy-label">Energi:</span>
+          <button class="energy-chip" data-energy="low">Låg</button>
+          <button class="energy-chip active" data-energy="normal">Normal</button>
+          <button class="energy-chip" data-energy="high">Hög</button>
+        </div>
       </div>
       <button id="settingsBtn" class="icon-btn" aria-label="Inställningar">⚙️</button>
     </header>
@@ -58,6 +64,7 @@
       <button class="tab active" data-tab="today">Idag</button>
       <button class="tab" data-tab="inbox">Kom ihåg</button>
       <button class="tab" data-tab="routines">Rutiner</button>
+      <button class="tab" data-tab="week">Vecka</button>
       <button class="tab" data-tab="timer">Timer</button>
       <button class="tab" data-tab="help">Hjälp</button>
     </nav>
@@ -103,6 +110,17 @@
       <div id="routineEmpty" class="empty">Skapa en enkel rutin med små steg.</div>
     </section>
 
+
+
+    <section id="week" class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Vecka</h2>
+          <p class="muted compact">En lugn överblick över nästa sju dagar.</p>
+        </div>
+      </div>
+      <div id="weekList" class="week-list"></div>
+    </section>
 
     <section id="timer" class="panel">
       <div class="panel-head">
@@ -153,6 +171,7 @@
         <button class="help-card" data-help="overload">🧠<span>Jag har för mycket i huvudet</span></button>
         <button class="help-card" data-help="lost">🧭<span>Jag vet inte vad jag ska göra</span></button>
         <button class="help-card" data-help="forgot">⏰<span>Jag har glömt något</span></button>
+        <button class="help-card" data-help="leave">🚪<span>Jag ska gå hemifrån</span></button>
       </div>
       <div id="helpResponse" class="help-response hidden"></div>
     </section>
@@ -194,6 +213,20 @@
         <input id="quickReminder" type="checkbox" />
         Påminn mig när tiden kommer
       </label>
+
+      <label>Återkommande
+        <select id="quickRecurrence">
+          <option value="">Inte återkommande</option>
+          <option value="daily">Varje dag</option>
+          <option value="weekdays">Vardagar</option>
+          <option value="weekly">Varje vecka</option>
+        </select>
+      </label>
+
+      <label class="checkbox-line">
+        <input id="quickCalendar" type="checkbox" />
+        Lägg även in i Google Calendar
+      </label>
       <p id="reminderHint" class="microcopy left hidden">Påminnelsen fungerar i webbläsaren när appen är igång. Nästa steg blir Google Calendar för säkrare notiser.</p>
 
       <button id="saveQuickBtn" value="default" class="primary full">Spara</button>
@@ -226,6 +259,18 @@
         <input id="editTaskReminder" type="checkbox" />
         Påminn mig
       </label>
+      <label>Återkommande
+        <select id="editTaskRecurrence">
+          <option value="">Inte återkommande</option>
+          <option value="daily">Varje dag</option>
+          <option value="weekdays">Vardagar</option>
+          <option value="weekly">Varje vecka</option>
+        </select>
+      </label>
+      <label class="checkbox-line">
+        <input id="editTaskCalendar" type="checkbox" />
+        Synka till Google Calendar
+      </label>
       <div class="dialog-actions">
         <button id="deleteTaskBtn" type="button" class="danger-btn">Ta bort</button>
         <button value="default" class="primary">Spara</button>
@@ -249,6 +294,19 @@
     </form>
   </dialog>
 
+
+  <dialog id="leaveDialog">
+    <form method="dialog" class="dialog-card">
+      <div class="dialog-head">
+        <h2>Gå hemifrån</h2>
+        <button value="cancel" class="icon-btn" aria-label="Stäng">✕</button>
+      </div>
+      <p class="muted">Kolla bara en sak i taget.</p>
+      <div id="leaveChecklist" class="leave-checklist"></div>
+      <button id="resetLeaveBtn" type="button" class="small-btn full-width">Börja om</button>
+    </form>
+  </dialog>
+
   <dialog id="settingsDialog">
     <form method="dialog" class="dialog-card">
       <div class="dialog-head">
@@ -268,6 +326,11 @@
       </label>
       <button id="notificationPermissionBtn" type="button" class="small-btn full-width">Tillåt notiser</button>
       <p id="notificationStatus" class="microcopy"></p>
+      <label class="checkbox-line">
+        <input id="calendarEnabled" type="checkbox" />
+        Använd Google Calendar för påminnelser
+      </label>
+      <p class="microcopy left">Calendar-händelser skapas via Apps Script när en uppgift har datum och tid.</p>
       <p class="microcopy">Appen fungerar även offline och synkar när backend finns.</p>
       <button id="saveSettingsBtn" value="default" class="primary full">Spara</button>
     </form>

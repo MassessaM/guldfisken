@@ -33,6 +33,8 @@ const els = {
   quickTime: document.querySelector("#quickTime"),
   quickSteps: document.querySelector("#quickSteps"),
   quickReminder: document.querySelector("#quickReminder"),
+  quickRecurrence: document.querySelector("#quickRecurrence"),
+  quickCalendar: document.querySelector("#quickCalendar"),
   reminderHint: document.querySelector("#reminderHint"),
   dateTimeArea: document.querySelector("#dateTimeArea"),
   routineDialog: document.querySelector("#routineDialog"),
@@ -51,6 +53,8 @@ const els = {
   editTaskTime: document.querySelector("#editTaskTime"),
   editTaskSteps: document.querySelector("#editTaskSteps"),
   editTaskReminder: document.querySelector("#editTaskReminder"),
+  editTaskRecurrence: document.querySelector("#editTaskRecurrence"),
+  editTaskCalendar: document.querySelector("#editTaskCalendar"),
   notificationStatus: document.querySelector("#notificationStatus"),
   timerDisplay: document.querySelector("#timerDisplay"),
   timerLabel: document.querySelector("#timerLabel"),
@@ -58,7 +62,11 @@ const els = {
   timerStartBtn: document.querySelector("#timerStartBtn"),
   timerPauseBtn: document.querySelector("#timerPauseBtn"),
   timerResetBtn: document.querySelector("#timerResetBtn"),
-  timerNotify: document.querySelector("#timerNotify")
+  timerNotify: document.querySelector("#timerNotify"),
+  weekList: document.querySelector("#weekList"),
+  calendarEnabled: document.querySelector("#calendarEnabled"),
+  leaveDialog: document.querySelector("#leaveDialog"),
+  leaveChecklist: document.querySelector("#leaveChecklist")
 };
 
 function defaultState(){
@@ -91,7 +99,10 @@ function normalizeState(s){
     steps: Array.isArray(t.steps) ? t.steps : [],
     currentStep: Number.isInteger(t.currentStep) ? t.currentStep : 0,
     reminder: !!t.reminder,
-    reminderFired: !!t.reminderFired
+    reminderFired: !!t.reminderFired,
+    recurrence: t.recurrence || "",
+    calendar: !!t.calendar,
+    calendarEventId: t.calendarEventId || ""
   }));
   copy.routines = (copy.routines || []).map(r => ({
     id: r.id || crypto.randomUUID(),
@@ -120,9 +131,9 @@ function loadState(){
 
 function loadPrefs(){
   try{
-    return JSON.parse(localStorage.getItem(PREF_KEY)) || {reduceMotion:false, largeText:false};
+    return JSON.parse(localStorage.getItem(PREF_KEY)) || {reduceMotion:false, largeText:false, energy:"normal", calendarEnabled:false};
   }catch{
-    return {reduceMotion:false, largeText:false};
+    return {reduceMotion:false, largeText:false, energy:"normal", calendarEnabled:false};
   }
 }
 
@@ -180,6 +191,8 @@ function getOpenToday(){
   tasks = tasks.sort((a,b) => (a.time||"99:99").localeCompare(b.time||"99:99"));
   if(sortEasyFirst){
     tasks = tasks.sort((a,b) => (a.steps?.length || 0) - (b.steps?.length || 0));
+  } else if(prefs.energy){
+    tasks = tasks.sort((a,b) => energyScore(a) - energyScore(b) || (a.time||"99:99").localeCompare(b.time||"99:99"));
   }
   return tasks;
 }
@@ -191,6 +204,73 @@ function getNowTask(){
     if(task) state.nowTaskId = task.id;
   }
   return task;
+}
+
+function renderEnergy(){
+  document.querySelectorAll(".energy-chip").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.energy === (prefs.energy || "normal"));
+  });
+}
+
+document.querySelectorAll(".energy-chip").forEach(btn => {
+  btn.addEventListener("click", () => {
+    prefs.energy = btn.dataset.energy;
+    savePrefs();
+    render();
+  });
+});
+
+function energyScore(task){
+  const steps = task.steps?.length || 0;
+  if(prefs.energy === "low") return steps + (task.time ? 1 : 0);
+  if(prefs.energy === "high") return -steps;
+  return 0;
+}
+
+function renderWeek(){
+  if(!els.weekList) return;
+  els.weekList.innerHTML = "";
+  const formatter = new Intl.DateTimeFormat("sv-SE", {weekday:"long", day:"numeric", month:"short"});
+  for(let i=0;i<7;i++){
+    const d = new Date();
+    d.setDate(d.getDate()+i);
+    const iso = d.toISOString().slice(0,10);
+    const dayTasks = state.tasks
+      .filter(t => t.date === iso && t.status !== "done")
+      .sort((a,b)=>(a.time||"99:99").localeCompare(b.time||"99:99"));
+
+    const card = document.createElement("section");
+    card.className = "week-day";
+    const h = document.createElement("h3");
+    h.textContent = i === 0 ? "Idag" : formatter.format(d);
+    card.appendChild(h);
+
+    if(!dayTasks.length){
+      const p = document.createElement("p");
+      p.className = "muted compact";
+      p.textContent = "Inget planerat.";
+      card.appendChild(p);
+    }else{
+      dayTasks.forEach(task => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "week-task task-open";
+        const left = document.createElement("span");
+        left.textContent = task.text;
+        const right = document.createElement("span");
+        right.className = "week-task-time";
+        right.textContent = task.time || "";
+        row.append(left,right);
+        row.addEventListener("click", ()=>{
+          state.nowTaskId = task.id;
+          saveState();
+          window.scrollTo({top:0, behavior:prefs.reduceMotion ? "auto":"smooth"});
+        });
+        card.appendChild(row);
+      });
+    }
+    els.weekList.appendChild(card);
+  }
 }
 
 function render(){
@@ -208,6 +288,8 @@ function render(){
 
   renderNow();
   renderRoutines();
+  renderWeek();
+  renderEnergy();
 }
 
 function renderNow(){
@@ -270,9 +352,31 @@ function renderTaskList(container, tasks){
 function completeTask(id){
   const task = state.tasks.find(t => t.id === id);
   if(!task) return;
-  task.status = "done";
-  if(state.nowTaskId === id) state.nowTaskId = null;
+
+  if(task.recurrence){
+    const next = nextOccurrence(task.date || todayISO(), task.recurrence);
+    task.date = next;
+    task.status = "open";
+    task.currentStep = 0;
+    task.reminderFired = false;
+    if(task.calendar) syncCalendarTask(task);
+  }else{
+    task.status = "done";
+    if(state.nowTaskId === id) state.nowTaskId = null;
+  }
   saveState();
+}
+
+function nextOccurrence(dateStr, recurrence){
+  const d = new Date(`${dateStr}T12:00:00`);
+  if(recurrence === "daily"){
+    d.setDate(d.getDate()+1);
+  }else if(recurrence === "weekly"){
+    d.setDate(d.getDate()+7);
+  }else if(recurrence === "weekdays"){
+    do{ d.setDate(d.getDate()+1); }while(d.getDay()===0 || d.getDay()===6);
+  }
+  return d.toISOString().slice(0,10);
 }
 
 function renderRoutines(){
@@ -334,7 +438,10 @@ function renderRoutines(){
         steps:routine.steps.map(s => s.text),
         currentStep:0,
         reminder:false,
-        reminderFired:false
+        reminderFired:false,
+        recurrence:"",
+        calendar:false,
+        calendarEventId:""
       };
       state.tasks.push(task);
       state.nowTaskId = task.id;
@@ -379,6 +486,8 @@ function openQuick(when="later"){
   els.quickText.value = "";
   els.quickSteps.value = "";
   els.quickReminder.checked = false;
+  els.quickRecurrence.value = "";
+  els.quickCalendar.checked = !!prefs.calendarEnabled;
   els.reminderHint.classList.add("hidden");
   setWhen(when);
   els.quickDialog.showModal();
@@ -413,11 +522,15 @@ document.querySelector("#quickForm").addEventListener("submit", (e) => {
     steps,
     currentStep:0,
     reminder: !!els.quickReminder.checked,
-    reminderFired:false
+    reminderFired:false,
+    recurrence: els.quickRecurrence.value,
+    calendar: !!els.quickCalendar.checked,
+    calendarEventId:""
   };
   state.tasks.push(task);
   if(selectedWhen === "now") state.nowTaskId = task.id;
   saveState();
+  if(task.calendar) syncCalendarTask(task);
   els.quickDialog.close();
 });
 
@@ -428,6 +541,8 @@ function openEditTask(task){
   els.editTaskTime.value = task.time || "";
   els.editTaskSteps.value = (task.steps || []).join("\n");
   els.editTaskReminder.checked = !!task.reminder;
+  els.editTaskRecurrence.value = task.recurrence || "";
+  els.editTaskCalendar.checked = !!task.calendar;
   els.editTaskDialog.showModal();
 }
 
@@ -444,7 +559,10 @@ document.querySelector("#editTaskForm").addEventListener("submit", (e) => {
   task.currentStep = Math.min(task.currentStep || 0, Math.max(0, task.steps.length - 1));
   task.reminder = !!els.editTaskReminder.checked;
   if(!task.reminder) task.reminderFired = false;
+  task.recurrence = els.editTaskRecurrence.value;
+  task.calendar = !!els.editTaskCalendar.checked;
   saveState();
+  if(task.calendar) syncCalendarTask(task);
   els.editTaskDialog.close();
 });
 
@@ -519,6 +637,7 @@ document.querySelector("#settingsBtn").addEventListener("click", () => {
   els.apiUrl.value = apiUrl;
   els.reduceMotion.checked = !!prefs.reduceMotion;
   els.largeText.checked = !!prefs.largeText;
+  els.calendarEnabled.checked = !!prefs.calendarEnabled;
   if("Notification" in window){
     updateNotificationStatus(
       Notification.permission === "granted" ? "Notiser är tillåtna." :
@@ -537,6 +656,7 @@ document.querySelector("#saveSettingsBtn").addEventListener("click", (e) => {
   localStorage.setItem(API_KEY, apiUrl);
   prefs.reduceMotion = els.reduceMotion.checked;
   prefs.largeText = els.largeText.checked;
+  prefs.calendarEnabled = els.calendarEnabled.checked;
   savePrefs();
   els.settingsDialog.close();
   syncState();
@@ -546,16 +666,61 @@ const helpText = {
   start: "Välj inte hela uppgiften. Välj bara första lilla rörelsen. Om uppgiften har steg visar NU-rutan bara nästa steg.",
   overload: "Tryck på “Få ur huvudet”. Skriv en sak per rad eller skapa flera poster. Du behöver inte bestämma när allt ska göras.",
   lost: "Gå till NU. Om inget finns där, välj en uppgift under Idag och tryck på den. Bara en sak behöver vara aktiv.",
-  forgot: "Skriv ner det lilla du minns i Kom ihåg. Du kan öppna och redigera det senare när mer kommer tillbaka."
+  forgot: "Skriv ner det lilla du minns i Kom ihåg. Du kan öppna och redigera det senare när mer kommer tillbaka.",
+  leave: "Öppna checklistan och gå igenom en sak i taget."
 };
 
+const leaveItems = ["Nycklar","Mobil","Plånbok / kort","Det jag ska ta med","Ytterkläder","Lås dörren"];
+function renderLeaveChecklist(){
+  els.leaveChecklist.innerHTML = "";
+  const saved = JSON.parse(localStorage.getItem("min-hjalp-leave") || "{}");
+  leaveItems.forEach((text,i)=>{
+    const row = document.createElement("label");
+    row.className = "leave-item";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = !!saved[i];
+    cb.addEventListener("change", ()=>{
+      saved[i] = cb.checked;
+      localStorage.setItem("min-hjalp-leave", JSON.stringify(saved));
+    });
+    const span = document.createElement("span");
+    span.textContent = text;
+    row.append(cb,span);
+    els.leaveChecklist.appendChild(row);
+  });
+}
+document.querySelector("#resetLeaveBtn")?.addEventListener("click", ()=>{
+  localStorage.removeItem("min-hjalp-leave");
+  renderLeaveChecklist();
+});
 document.querySelectorAll(".help-card").forEach(btn => {
   btn.addEventListener("click", () => {
+    if(btn.dataset.help === "leave"){
+      renderLeaveChecklist();
+      els.leaveDialog.showModal();
+      return;
+    }
     els.helpResponse.textContent = helpText[btn.dataset.help];
     els.helpResponse.classList.remove("hidden");
   });
 });
 
+
+
+async function syncCalendarTask(task){
+  if(!apiUrl || !task.date || !task.time) return;
+  try{
+    await fetch(apiUrl, {
+      method:"POST",
+      mode:"no-cors",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({action:"calendarUpsert", payload:task})
+    });
+  }catch(err){
+    console.warn("Calendar-synk misslyckades.", err);
+  }
+}
 
 async function requestNotificationPermission(){
   if(!("Notification" in window)){
