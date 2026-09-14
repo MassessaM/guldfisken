@@ -71,7 +71,9 @@ const els = {
   cloudStatus: document.querySelector("#cloudStatus"),
   iphoneDialog: document.querySelector("#iphoneDialog"),
   installStatus: document.querySelector("#installStatus"),
-  deleteCalendarBtn: document.querySelector("#deleteCalendarBtn")
+  deleteCalendarBtn: document.querySelector("#deleteCalendarBtn"),
+  capabilityList: document.querySelector("#capabilityList"),
+  pushInfoDialog: document.querySelector("#pushInfoDialog")
 };
 
 function defaultState(){
@@ -301,6 +303,7 @@ function render(){
   renderRoutines();
   renderWeek();
   renderEnergy();
+  updateAppBadge();
 }
 
 function renderNow(){
@@ -663,6 +666,7 @@ document.querySelector("#settingsBtn").addEventListener("click", () => {
   if(els.syncStatus && lastSync){
     els.syncStatus.textContent = "Senast synkad: " + new Date(lastSync).toLocaleString("sv-SE");
   }
+  renderCapabilities();
   els.settingsDialog.showModal();
 });
 
@@ -986,8 +990,67 @@ renderTimer();
 maybeFireTaskReminders();
 
 if("serviceWorker" in navigator){
-  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(console.warn));
+  window.addEventListener("load", async () => {
+    try{
+      await navigator.serviceWorker.register("sw.js");
+    }catch(err){
+      console.warn(err);
+    }
+  });
 }
+
+
+function openTaskCount(){
+  return state.tasks.filter(t => t.status !== "done").length;
+}
+
+async function updateAppBadge(){
+  const count = openTaskCount();
+  try{
+    if("setAppBadge" in navigator){
+      if(count > 0) await navigator.setAppBadge(count);
+      else if("clearAppBadge" in navigator) await navigator.clearAppBadge();
+    }
+  }catch(err){
+    console.warn("Badge kunde inte uppdateras", err);
+  }
+}
+
+function renderCapabilities(){
+  if(!els.capabilityList) return;
+  const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  const items = [
+    ["Installerad webbapp", standalone],
+    ["Notiser", "Notification" in window],
+    ["Service Worker", "serviceWorker" in navigator],
+    ["Push API", "PushManager" in window],
+    ["App-badge", "setAppBadge" in navigator]
+  ];
+  els.capabilityList.innerHTML = "";
+  items.forEach(([label, yes]) => {
+    const row = document.createElement("div");
+    row.className = "capability-item";
+    const name = document.createElement("span");
+    name.textContent = label;
+    const status = document.createElement("strong");
+    status.className = yes ? "capability-yes" : "capability-no";
+    status.textContent = yes ? "Ja" : "Inte här";
+    row.append(name,status);
+    els.capabilityList.appendChild(row);
+  });
+}
+
+document.querySelector("#badgeTestBtn")?.addEventListener("click", async () => {
+  if("setAppBadge" in navigator){
+    try{ await navigator.setAppBadge(Math.max(1, openTaskCount())); }catch{}
+  }
+});
+
+document.querySelector("#clearBadgeBtn")?.addEventListener("click", async () => {
+  if("clearAppBadge" in navigator){
+    try{ await navigator.clearAppBadge(); }catch{}
+  }
+});
 
 function updateInstallStatus(){
   const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;

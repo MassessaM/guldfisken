@@ -7,6 +7,10 @@
   <title>Min hjälp</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#29483f">
 </head>
 <body>
   <main class="app-shell">
@@ -312,6 +316,19 @@
   </dialog>
 
 
+
+  <dialog id="pushInfoDialog">
+    <form method="dialog" class="dialog-card">
+      <div class="dialog-head">
+        <h2>Pushnotiser</h2>
+        <button value="cancel" class="icon-btn" aria-label="Stäng">✕</button>
+      </div>
+      <p>Din app är nu förberedd för Web Push, men en server behöver fortfarande skicka själva pushmeddelandet.</p>
+      <p class="muted">På iPhone fungerar Web Push för webbappar som lagts på hemskärmen. När vi kopplar push-backend kan notiser komma även när appen inte är öppen.</p>
+      <button value="default" class="primary solid full">Jag förstår</button>
+    </form>
+  </dialog>
+
   <dialog id="iphoneDialog">
     <form method="dialog" class="dialog-card">
       <div class="dialog-head">
@@ -359,6 +376,14 @@
         <h3>Synk & backup</h3>
         <button id="syncNowBtn" type="button" class="small-btn full-width">↕ Synka nu</button>
         <p id="syncStatus" class="microcopy left">Data sparas lokalt och i Google Sheets när backend är kopplad.</p>
+      </div>
+
+      <div class="settings-section">
+        <h3>Notiser & appikon</h3>
+        <div id="capabilityList" class="capability-list"></div>
+        <button id="badgeTestBtn" type="button" class="small-btn full-width">Testa app-badge</button>
+        <button id="clearBadgeBtn" type="button" class="small-btn full-width">Rensa badge</button>
+        <p class="microcopy left">Badgen visar antal öppna saker när enheten stöder det.</p>
       </div>
 
       <div class="settings-section">

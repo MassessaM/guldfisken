@@ -1,4 +1,4 @@
-const CACHE = "min-hjalp-v6";
+const CACHE = "min-hjalp-v7";
 const ASSETS = ["./","index.html","style.css","app.js","manifest.json"];
 
 self.addEventListener("install", event => {
@@ -24,5 +24,37 @@ self.addEventListener("fetch", event => {
         return response;
       }).catch(() => cached)
     )
+  );
+});
+
+
+self.addEventListener("push", event => {
+  let data = { title:"Min hjälp", body:"Du har en påminnelse." };
+  try{
+    if(event.data) data = {...data, ...event.data.json()};
+  }catch(e){
+    if(event.data) data.body = event.data.text();
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Min hjälp", {
+      body: data.body || "",
+      icon: "icon-192.png",
+      badge: "icon-192.png",
+      data: data.url || "./"
+    })
+  );
+});
+
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  const url = event.notification.data || "./";
+  event.waitUntil(
+    clients.matchAll({type:"window", includeUncontrolled:true}).then(list => {
+      for(const client of list){
+        if("focus" in client) return client.focus();
+      }
+      if(clients.openWindow) return clients.openWindow(url);
+    })
   );
 });

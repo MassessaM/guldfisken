@@ -178,3 +178,10 @@ select{width:100%;border:1px solid var(--line);border-radius:14px;padding:13px;b
 
 .install-ok{color:var(--accent);font-weight:700}
 .install-web{color:var(--muted)}
+
+.capability-list{display:grid;gap:7px;margin:10px 0 12px}
+.capability-item{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:9px 11px;background:#fbfaf8;border:1px solid var(--line);border-radius:12px;font-size:.85rem}
+.capability-item strong{font-size:.78rem}
+.capability-yes{color:var(--accent)}
+.capability-no{color:var(--muted)}
+.settings-section .small-btn + .small-btn{margin-top:7px}
